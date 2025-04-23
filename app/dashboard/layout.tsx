@@ -2,7 +2,7 @@
 
 import { ReactNode, useState } from "react";
 import Link from "next/link";
-import { redirect, usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -20,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useSidebarStore } from "@/lib/store/sidebar-store";
 import { ModeToggle } from "@/components/theme-toggle";
+import { useAuthStore } from "@/lib/store/auth-store";
 
 interface NavItemProps {
   href: string;
@@ -55,6 +56,8 @@ function NavItem({
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const { clearAuth } = useAuthStore();
+  const router = useRouter();
   const { isMinimized, toggleSidebar } = useSidebarStore();
 
   // For mobile navigation only
@@ -153,7 +156,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             )}
             onClick={() => {
               console.log("Logout");
-              redirect("/login");
+              // Clear authStore state
+              // clearAuth();
+              // Clear JWT cookie
+              clearAuth();
+              router.push("/login");
             }}
           >
             <LogOut className={cn("h-4 w-4", !isMinimized && "mr-2")} />

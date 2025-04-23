@@ -18,7 +18,8 @@ import {
 } from "@/components/ui/form";
 import { loginSchema } from "@/lib/validation";
 // import { Card, CardContent } from "@/components/ui/card";
-import { Input, Button } from "@/components/ui";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 type LoginForm = z.infer<typeof loginSchema>;
 

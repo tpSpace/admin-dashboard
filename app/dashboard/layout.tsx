@@ -18,7 +18,7 @@ import {
   ChevronsRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useSidebarStore } from "@/lib/store/sidebarStore";
+import { useSidebarStore } from "@/lib/store/sidebar-store";
 import { ModeToggle } from "@/components/theme-toggle";
 
 interface NavItemProps {

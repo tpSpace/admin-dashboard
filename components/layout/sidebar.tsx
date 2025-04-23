@@ -3,7 +3,8 @@
 import { useRouter, usePathname } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { useSidebarStore, useAuthStore } from "@/lib/store/authStore";
+import { useAuthStore } from "@/lib/store/auth-store";
+import { useSidebarStore } from "@/lib/store/sidebar-store";
 import { LogOut } from "lucide-react";
 
 export default function Sidebar() {

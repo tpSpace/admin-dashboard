@@ -6,7 +6,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { z } from "zod";
-import { useAuthStore } from "@/lib/store/authStore";
+import { useAuthStore } from "@/lib/store/auth-store";
 import { login, getCurrentUser } from "@/lib/auth";
 import {
   Form,

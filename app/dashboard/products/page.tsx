@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
+import type React from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
+import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Plus, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -35,7 +37,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import api from "@/lib/api";
+import axios from "axios";
+import { useAuthStore } from "@/lib/store/auth-store";
+
+// Create API instance with auth token
+const api = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080/api",
+  withCredentials: true,
+});
+
+// Add auth token interceptor
+api.interceptors.request.use((config) => {
+  const token = useAuthStore.getState().token;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
 // Schema for product validation
 const productSchema = z.object({
@@ -51,24 +69,41 @@ const productSchema = z.object({
     .number()
     .int()
     .nonnegative({ message: "Stock must be a non-negative integer" }),
-  imageUrl: z
-    .string()
-    .url({ message: "Please enter a valid URL" })
-    .optional()
-    .or(z.literal("")),
+  images: z
+    .array(z.instanceof(File))
+    .max(10, { message: "Cannot upload more than 10 images" })
+    .optional(),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
 
 // Function to add a new product
 const addProduct = async (data: ProductFormValues) => {
-  const response = await api.post("/products", data);
+  const formData = new FormData();
+  formData.append("name", data.name);
+  formData.append("description", data.description);
+  formData.append("price", data.price.toString());
+  formData.append("category", data.category);
+  formData.append("stock", data.stock.toString());
+
+  if (data.images && data.images.length > 0) {
+    data.images.forEach((image) => {
+      formData.append("images", image);
+    });
+  }
+
+  const response = await api.post("/products", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
   return response.data;
 };
 
 function ProductsPage() {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
+  const [previewImages, setPreviewImages] = useState<string[]>([]);
 
   // Initialize form with default values
   const form = useForm<ProductFormValues>({
@@ -79,7 +114,7 @@ function ProductsPage() {
       price: 0,
       category: "",
       stock: 0,
-      imageUrl: "",
+      images: [],
     },
   });
 
@@ -91,6 +126,8 @@ function ProductsPage() {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       setOpen(false);
       form.reset();
+      previewImages.forEach((url) => URL.revokeObjectURL(url));
+      setPreviewImages([]);
     },
     onError: (error) => {
       console.error("Error adding product:", error);
@@ -101,6 +138,65 @@ function ProductsPage() {
   // Form submission handler
   const onSubmit = (data: ProductFormValues) => {
     addProductMutation.mutate(data);
+  };
+
+  // Handle file drop
+  const onDrop = useCallback(
+    (acceptedFiles: File[]) => {
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      const maxImages = 10; // Max 10 images
+      const currentImages = form.getValues("images") || [];
+
+      // Check if adding these files would exceed the limit
+      if (currentImages.length + acceptedFiles.length > maxImages) {
+        toast.error(
+          `Cannot upload more than ${maxImages} images. You already have ${currentImages.length}.`
+        );
+      }
+
+      const newFiles = acceptedFiles
+        .filter(
+          (file) => file.type.startsWith("image/") && file.size <= maxSize
+        )
+        .slice(0, maxImages - currentImages.length);
+
+      if (newFiles.length < acceptedFiles.length) {
+        toast.error(
+          "Some files were rejected (invalid type, size > 5MB, or max 10 images)"
+        );
+      }
+
+      if (newFiles.length > 0) {
+        form.setValue("images", [...currentImages, ...newFiles], {
+          shouldValidate: true,
+        });
+
+        const newPreviews = newFiles.map((file) => URL.createObjectURL(file));
+        setPreviewImages((prev) => [...prev, ...newPreviews]);
+      }
+    },
+    [form]
+  );
+
+  // Handle file input change
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const filesArray = Array.from(e.target.files);
+      onDrop(filesArray);
+    }
+  };
+
+  // Remove an image
+  const removeImage = (index: number) => {
+    const currentImages = form.getValues("images") || [];
+    const newImages = [...currentImages];
+    newImages.splice(index, 1);
+    form.setValue("images", newImages, { shouldValidate: true });
+
+    const newPreviews = [...previewImages];
+    URL.revokeObjectURL(newPreviews[index]);
+    newPreviews.splice(index, 1);
+    setPreviewImages(newPreviews);
   };
 
   return (
@@ -114,7 +210,7 @@ function ProductsPage() {
               Add Product
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px]">
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add New Product</DialogTitle>
               <DialogDescription>
@@ -228,18 +324,89 @@ function ProductsPage() {
 
                 <FormField
                   control={form.control}
-                  name="imageUrl"
+                  name="images"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Image URL</FormLabel>
+                      <FormLabel>Product Images</FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="https://example.com/image.jpg"
-                          {...field}
-                        />
+                        <div className="space-y-4">
+                          {/* Drag and drop area */}
+                          <div
+                            className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:bg-muted/50 transition-colors"
+                            onDragOver={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }}
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              const files = Array.from(e.dataTransfer.files);
+                              onDrop(files);
+                            }}
+                            onClick={() => {
+                              const input = document.getElementById(
+                                "image-upload"
+                              ) as HTMLInputElement;
+                              if (input) input.click();
+                            }}
+                          >
+                            <div className="flex flex-col items-center gap-2">
+                              <Upload className="h-8 w-8 text-muted-foreground" />
+                              <p className="text-sm font-medium">
+                                Drag and drop images here or click to browse
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                Supports: JPG, PNG, GIF (Max 5MB each, up to 10
+                                images)
+                              </p>
+                            </div>
+                            <input
+                              id="image-upload"
+                              type="file"
+                              multiple
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handleFileChange}
+                            />
+                          </div>
+
+                          {/* Image preview grid */}
+                          {previewImages.length > 0 && (
+                            <div className="images-preview-container">
+                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-60 overflow-y-auto p-2">
+                                {previewImages.map((src, index) => (
+                                  <div key={index} className="relative">
+                                    <div className="aspect-square rounded-md overflow-hidden border bg-muted relative">
+                                      <Image
+                                        src={src}
+                                        alt={`Preview ${index + 1}`}
+                                        fill
+                                        sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+                                        className="object-cover"
+                                      />
+                                      <Button
+                                        type="button"
+                                        variant="destructive"
+                                        size="icon"
+                                        onClick={() => removeImage(index)}
+                                        aria-label={`Remove image ${index + 1}`}
+                                        className="absolute top-1 right-1 rounded-full p-1 shadow-sm"
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="mt-2 text-xs text-muted-foreground">
+                                {previewImages.length} of 10 images uploaded
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </FormControl>
                       <FormDescription>
-                        Enter the URL of the product image
+                        Upload up to 10 product images (max 5MB each)
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -250,7 +417,12 @@ function ProductsPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setOpen(false)}
+                    onClick={() => {
+                      setOpen(false);
+                      form.reset();
+                      previewImages.forEach((url) => URL.revokeObjectURL(url));
+                      setPreviewImages([]);
+                    }}
                   >
                     Cancel
                   </Button>
@@ -266,8 +438,8 @@ function ProductsPage() {
 
       <div className="border rounded-lg p-6">
         <p className="text-center text-muted-foreground">
-          Your products will appear here. Click &quot;Add Product&quot; to
-          create your first product.
+          Your products will appear here. Click "Add Product" to create your
+          first product.
         </p>
       </div>
     </div>

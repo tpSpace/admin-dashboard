@@ -4,6 +4,7 @@ import { ReactNode, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+
 import {
   LayoutDashboard,
   ShoppingBag,
@@ -155,11 +156,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               isMinimized && "px-2 justify-center"
             )}
             onClick={() => {
-              console.log("Logout");
               // Clear authStore state
               // clearAuth();
               // Clear JWT cookie
               clearAuth();
+              document.cookie =
+                "jwt=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+              console.log(document.cookie);
               router.push("/login");
             }}
           >

@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback } from "react";
 import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -325,7 +325,7 @@ function ProductsPage() {
                 <FormField
                   control={form.control}
                   name="images"
-                  render={({ field }) => (
+                  render={() => (
                     <FormItem>
                       <FormLabel>Product Images</FormLabel>
                       <FormControl>
@@ -375,8 +375,8 @@ function ProductsPage() {
                             <div className="images-preview-container">
                               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-60 overflow-y-auto p-2">
                                 {previewImages.map((src, index) => (
-                                  <div key={index} className="relative">
-                                    <div className="aspect-square rounded-md overflow-hidden border bg-muted relative">
+                                  <div key={index} className="relative group">
+                                    <div className="aspect-square rounded-md overflow-hidden border bg-muted relative group-hover:ring-2 group-hover:ring-primary/50 transition-all">
                                       <Image
                                         src={src}
                                         alt={`Preview ${index + 1}`}
@@ -388,9 +388,12 @@ function ProductsPage() {
                                         type="button"
                                         variant="destructive"
                                         size="icon"
-                                        onClick={() => removeImage(index)}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          removeImage(index);
+                                        }}
                                         aria-label={`Remove image ${index + 1}`}
-                                        className="absolute top-1 right-1 rounded-full p-1 shadow-sm"
+                                        className="absolute top-1 right-1 h-5 w-5 rounded-full p-0.5 shadow-md text-white bg-red-500 hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
                                       >
                                         <X className="h-3 w-3" />
                                       </Button>
@@ -438,8 +441,8 @@ function ProductsPage() {
 
       <div className="border rounded-lg p-6">
         <p className="text-center text-muted-foreground">
-          Your products will appear here. Click "Add Product" to create your
-          first product.
+          Your products will appear here. Click &quot;Add Product&quot; to
+          create your first product.
         </p>
       </div>
     </div>

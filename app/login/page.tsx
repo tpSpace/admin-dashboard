@@ -49,6 +49,7 @@ export default function LoginPage() {
       //   userId: "7a2a48c5-8352-4e17-9933-3623500c57bd"
       // }
       setAuth(data, data.token);
+      // set token in cookies
       router.push("/dashboard");
       toast.success("Logged in successfully");
     },

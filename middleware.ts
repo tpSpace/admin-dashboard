@@ -56,7 +56,7 @@ export async function middleware(request: NextRequest) {
 
     // Check for admin-only paths
     if (adminOnlyPaths.some((path) => pathname.startsWith(path))) {
-      if (payload.role !== "ADMIN") {
+      if (payload.role !== "ROLE_ADMIN") {
         return NextResponse.redirect(new URL("/dashboard", request.url));
       }
     }

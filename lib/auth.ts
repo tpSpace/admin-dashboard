@@ -1,4 +1,4 @@
-import api from "@/lib/api";
+import api from "@/lib/api/login-api";
 
 export const login = async (credentials: {
   email: string;

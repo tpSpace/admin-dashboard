@@ -91,7 +91,7 @@ export default function ProductsPage() {
               <SelectItem value="All">All Categories</SelectItem>
               {/* Map through fetched categories */}
               {categories.map((category: Category) => (
-                <SelectItem key={category.id} value={category.name}>
+                <SelectItem key={category.id} value={category.id}>
                   {category.name}
                 </SelectItem>
               ))}

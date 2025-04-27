@@ -25,7 +25,6 @@ export const createProduct = async (data: ProductFormValues) => {
   formData.append("name", data.name);
   formData.append("description", data.description);
   formData.append("price", data.price.toString());
-  formData.append("category", data.category);
   formData.append("quantity", data.stock.toString());
   formData.append("category", data.category);
 

@@ -8,7 +8,8 @@ import { Product } from "@/types/products-schema";
 interface ProductCardProps {
   product: Product;
   onDelete: (id: string) => void;
-  onEdit: (id: string) => void;
+  onEdit: (id: string) => void; // Updated to accept an ID
+  children?: React.ReactNode;
 }
 
 export default function ProductCard({

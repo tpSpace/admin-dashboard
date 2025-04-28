@@ -74,7 +74,11 @@ export default function ImageUpload({
                   <div key={index} className="relative group">
                     <div className="aspect-square rounded-md overflow-hidden border bg-muted relative group-hover:ring-2 group-hover:ring-primary/50 transition-all">
                       <Image
-                        src={src}
+                        src={
+                          src.startsWith("http") || src.startsWith("data:")
+                            ? src
+                            : `data:image/jpeg;base64,${src}`
+                        }
                         alt={`Preview ${index + 1}`}
                         fill
                         sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"

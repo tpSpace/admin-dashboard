@@ -5,7 +5,12 @@ import { Plus, Search } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -22,6 +27,7 @@ import { useGetProducts, useDeleteProduct } from "@/lib/api/products-api";
 import { useGetCategories } from "@/lib/api/categories-api";
 import { Category } from "@/types/categories-schema";
 import { Product } from "@/types/products-schema";
+import EditProductModal from "./components/product-modal";
 
 export default function ProductsPage() {
   const [open, setOpen] = useState(false);
@@ -33,6 +39,9 @@ export default function ProductsPage() {
   const { data: products, isLoading, error } = useGetProducts();
   const { data: categories = [] } = useGetCategories();
   const deleteProductMutation = useDeleteProduct();
+
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [productToEdit, setProductToEdit] = useState<Product | null>(null);
 
   // Handle product delete
   const handleDeleteProduct = (id: string) => {
@@ -48,11 +57,6 @@ export default function ProductsPage() {
         },
       });
     }
-  };
-
-  // Handle product edit (placeholder for now)
-  const handleEditProduct = (id: string) => {
-    toast.info(`Edit functionality for product ${id} coming soon`);
   };
 
   // Filter products based on search query and category
@@ -109,6 +113,7 @@ export default function ProductsPage() {
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+              <DialogTitle>Add Product</DialogTitle>
               <ProductForm
                 categories={categories} // Pass categories to the form
                 onSuccess={() => {
@@ -154,9 +159,33 @@ export default function ProductsPage() {
               key={product.id}
               product={product}
               onDelete={handleDeleteProduct}
-              onEdit={handleEditProduct}
-            />
+              onEdit={() => {
+                setProductToEdit(product);
+                setEditModalOpen(true);
+              }}
+            >
+              <EditProductModal
+                open={editModalOpen}
+                setOpen={setEditModalOpen}
+                product={product}
+                categories={categories}
+                onSuccess={() =>
+                  queryClient.invalidateQueries({ queryKey: ["products"] })
+                }
+              />
+            </ProductCard>
           ))}
+          {productToEdit && (
+            <EditProductModal
+              product={productToEdit}
+              categories={categories}
+              open={editModalOpen}
+              setOpen={setEditModalOpen}
+              onSuccess={() => {
+                queryClient.invalidateQueries({ queryKey: ["products"] });
+              }}
+            />
+          )}
         </div>
       ) : product?.length ? (
         <div className="border rounded-lg p-12 text-center">

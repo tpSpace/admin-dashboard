@@ -75,7 +75,7 @@ export default function ImageUpload({
                     <div className="aspect-square rounded-md overflow-hidden border bg-muted relative group-hover:ring-2 group-hover:ring-primary/50 transition-all">
                       <Image
                         src={
-                          src.startsWith("http") || src.startsWith("data:")
+                          src.startsWith("http") || src.startsWith("blob:")
                             ? src
                             : `data:image/jpeg;base64,${src}`
                         }

@@ -87,8 +87,6 @@ export default function ProductForm({
           id: initialData.id,
           data: {
             ...data,
-            // Include any changes to existing images if needed
-            // existingImages: existingImages
           },
         },
         {

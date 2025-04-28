@@ -16,7 +16,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { loginSchema } from "@/lib/validation";
+import { loginSchema } from "@/types/validation";
 // import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -38,16 +38,6 @@ export default function LoginPage() {
   const loginMutation = useMutation({
     mutationFn: login,
     onSuccess: (data) => {
-      // data returns:
-      // {
-      //   email: "admin@admin.com",
-      //   firstName: "lmao",
-      //   lastName: "super_lmao",
-      //   role: "ADMIN",
-      //   token: "...",
-      //   type: "Bearer",
-      //   userId: "7a2a48c5-8352-4e17-9933-3623500c57bd"
-      // }
       setAuth(data, data.token);
       // set token in cookies
       router.push("/dashboard");

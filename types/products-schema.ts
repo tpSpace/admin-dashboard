@@ -9,10 +9,10 @@ export const productSchema = z.object({
     .number()
     .positive({ message: "Price must be a positive number" }),
   category: z.string().min(1, { message: "Please select a category" }),
-  stock: z.coerce
+  quantity: z.coerce
     .number()
     .int()
-    .nonnegative({ message: "Stock must be a non-negative integer" }),
+    .nonnegative({ message: "Quantity must be a non-negative integer" }),
   images: z
     .array(z.instanceof(File))
     .max(10, { message: "Cannot upload more than 10 images" })
@@ -26,10 +26,8 @@ export type Product = {
   description: string;
   price: number;
   category: string;
-  stock: number;
+  quantity: number;
   images: string[];
-  createdAt: string;
-  updatedAt: string;
 };
 
 export type ProductFormValues = z.infer<typeof productSchema>;

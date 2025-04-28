@@ -55,7 +55,7 @@ export default function ProductForm({
       description: "",
       price: 0,
       category: "",
-      stock: 0,
+      quantity: 0,
       images: [],
     },
   });
@@ -196,10 +196,10 @@ export default function ProductForm({
 
             <FormField
               control={form.control}
-              name="stock"
+              name="quantity"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Stock Quantity</FormLabel>
+                  <FormLabel>Quantity</FormLabel>
                   <FormControl>
                     <Input type="number" placeholder="0" {...field} />
                   </FormControl>

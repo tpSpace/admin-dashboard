@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuthStore } from "@/lib/store/auth-store";
 import { Product, ProductFormValues } from "@/types/products-schema";
+import { Page } from "@/types/page";
 
 // Create API instance with auth token
 const api = axios.create({
@@ -22,17 +23,19 @@ api.interceptors.request.use((config) => {
 // Function to add a new product
 export const createProduct = async (data: ProductFormValues) => {
   const formData = new FormData();
+
   formData.append("name", data.name);
   formData.append("description", data.description);
   formData.append("price", data.price.toString());
-  formData.append("quantity", data.stock.toString());
+  formData.append("quantity", data.quantity.toString());
   formData.append("category", data.category);
 
   if (data.images && data.images.length > 0) {
-    data.images.forEach((image: Blob) => {
+    data.images.forEach((image: File) => {
       formData.append("images", image);
     });
   }
+
   const response = await api.post("/v1/products", formData, {
     headers: {
       "Content-Type": "multipart/form-data",
@@ -42,26 +45,24 @@ export const createProduct = async (data: ProductFormValues) => {
 };
 
 // Function to fetch products
-export const getProducts = async (): Promise<Product[]> => {
-  const response = await api.get("/v1/products");
+// filepath: src/api/products.ts (update getProducts)
 
-  // Handle different response structures
-  const data = response.data;
-
-  if (Array.isArray(data)) {
-    return data;
-  } else if (data?.products && Array.isArray(data.products)) {
-    return data.products;
-  } else if (data?.content && Array.isArray(data.content)) {
-    return data.content;
-  } else {
-    console.error("Unexpected API response format:", data);
-    return [];
-  }
+export const getProducts = async (
+  page = 0,
+  size = 10
+): Promise<Page<Product>> => {
+  const { data: rawPage } = await api.get<Page<Product>>("/v1/products", {
+    params: { page, size },
+  });
+  console.log("Products API response:", rawPage);
+  return {
+    ...rawPage,
+    content: rawPage.content,
+  };
 };
 
 // Function to fetch a single product
-export const getProduct = async (id: string): Promise<Product> => {
+export const getProductById = async (id: string): Promise<Product> => {
   const response = await api.get(`/v1/products/${id}`);
   return response.data;
 };
@@ -76,15 +77,15 @@ export const updateProduct = async (
   formData.append("description", data.description);
   formData.append("price", data.price.toString());
   formData.append("category", data.category);
-  formData.append("stock", data.stock.toString());
+  formData.append("quantity", data.quantity.toString());
 
   if (data.images && data.images.length > 0) {
-    data.images.forEach((image) => {
+    data.images.forEach((image: File) => {
       formData.append("images", image);
     });
   }
 
-  const response = await api.put(`/v1/products/${id}`, formData, {
+  const response = await api.put(`/v1/products?id=${id}`, formData, {
     headers: {
       "Content-Type": "multipart/form-data",
     },
@@ -94,21 +95,21 @@ export const updateProduct = async (
 
 // Function to delete a product
 export const deleteProduct = async (id: string): Promise<void> => {
-  await api.delete(`/v1/products/${id}`);
+  await api.delete(`/v1/products?id=${id}`);
 };
 
 // React Query hooks
 export const useGetProducts = () => {
   return useQuery({
     queryKey: ["products"],
-    queryFn: getProducts,
+    queryFn: () => getProducts(),
   });
 };
 
 export const useGetProduct = (id: string) => {
   return useQuery({
     queryKey: ["product", id],
-    queryFn: () => getProduct(id),
+    queryFn: () => getProductById(id),
     enabled: !!id,
   });
 };

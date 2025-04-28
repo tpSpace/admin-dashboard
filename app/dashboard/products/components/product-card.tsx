@@ -23,12 +23,19 @@ export default function ProductCard({
     }).format(price);
   };
 
+  const firstRaw = product.images?.[0] ?? "";
+  const src = firstRaw
+    ? firstRaw.startsWith("data:") || firstRaw.startsWith("http")
+      ? firstRaw
+      : `data:image/jpeg;base64,${firstRaw}`
+    : null;
+
   return (
     <Card className="overflow-hidden flex flex-col">
       <div className="h-48 bg-muted/30 relative">
-        {product.images && product.images[0] ? (
+        {src ? (
           <Image
-            src={product.images[0]}
+            src={src}
             alt={product.name}
             fill
             sizes="(max-width: 768px) 100vw, 33vw"
@@ -53,9 +60,11 @@ export default function ProductCard({
         </p>
         <div className="mt-2 text-sm">
           <span
-            className={product.stock > 0 ? "text-green-600" : "text-red-500"}
+            className={product.quantity > 0 ? "text-green-600" : "text-red-500"}
           >
-            {product.stock > 0 ? `${product.stock} in stock` : "Out of stock"}
+            {product.quantity > 0
+              ? `${product.quantity} in stock`
+              : "Out of stock"}
           </span>
         </div>
       </CardContent>

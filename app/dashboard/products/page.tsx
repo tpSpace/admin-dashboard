@@ -21,6 +21,7 @@ import ProductSkeleton from "./components/product-skeleton";
 import { useGetProducts, useDeleteProduct } from "@/lib/api/products-api";
 import { useGetCategories } from "@/lib/api/categories-api";
 import { Category } from "@/types/categories-schema";
+import { Product } from "@/types/products-schema";
 
 export default function ProductsPage() {
   const [open, setOpen] = useState(false);
@@ -55,7 +56,9 @@ export default function ProductsPage() {
   };
 
   // Filter products based on search query and category
-  const filteredProducts = products?.filter((product) => {
+  // const page = data as Page<Product>;
+  const product = products?.content;
+  const filteredProducts = product?.filter((product: Product) => {
     const matchesSearch =
       searchQuery === "" ||
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -155,7 +158,7 @@ export default function ProductsPage() {
             />
           ))}
         </div>
-      ) : products?.length ? (
+      ) : product?.length ? (
         <div className="border rounded-lg p-12 text-center">
           <p className="text-lg font-medium mb-2">No matching products found</p>
           <p className="text-muted-foreground mb-6">

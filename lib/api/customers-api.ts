@@ -46,10 +46,7 @@ export const changeCustomerRole = async (
   role: string
 ): Promise<Customer> => {
   const { data } = await api.patch(`/v1/users/${customerId}/role`, null, {
-    params: {
-      id: customerId, // Include as query param since @RequestParam expects it
-      role: role, // Include as query param
-    },
+    params: { id: customerId, role },
   });
   return data;
 };

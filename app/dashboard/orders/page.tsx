@@ -16,7 +16,15 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronLeft, ChevronRight, Package, MoreVertical } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Package,
+  MoreVertical,
+  ChevronDown,
+  ChevronUp,
+  ShoppingBag,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +36,9 @@ export default function OrdersPage() {
   const [page, setPage] = useState(0);
   const pageSize = 10;
   const queryClient = useQueryClient();
+  const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>(
+    {}
+  );
 
   const { data, isLoading, error } = useGetAllOrders(page, pageSize);
   const changeStatusMutation = useChangeOrderStatus();
@@ -85,6 +96,14 @@ export default function OrdersPage() {
     );
   };
 
+  // Toggle expanded state for an order
+  const toggleOrderExpand = (orderId: string) => {
+    setExpandedOrders((prev) => ({
+      ...prev,
+      [orderId]: !prev[orderId],
+    }));
+  };
+
   if (isLoading) {
     return (
       <div className="container mx-auto p-6">
@@ -140,6 +159,7 @@ export default function OrdersPage() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[50px]"></TableHead> {/* Expand column */}
               <TableHead className="w-[100px]">Order ID</TableHead>
               <TableHead className="w-[120px]">Date</TableHead>
               <TableHead className="w-[120px]">Status</TableHead>
@@ -153,64 +173,135 @@ export default function OrdersPage() {
           <TableBody>
             {orders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
+                <TableCell colSpan={8} className="h-24 text-center">
                   No orders found
                 </TableCell>
               </TableRow>
             ) : (
               orders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell className="font-mono text-xs">
-                    {order.id.substring(0, 8)}...
-                  </TableCell>
-                  <TableCell>
-                    {new Date(order.orderDate).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={getStatusVariant(order.status)}>
-                      {order.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{formatCurrency(order.totalAmount)}</TableCell>
-                  <TableCell className="max-w-xs truncate">
-                    {order.shippingAddress}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <div className="text-sm">
-                      {order.items.length}{" "}
-                      {order.items.length === 1 ? "item" : "items"}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          disabled={changeStatusMutation.isPending}
-                        >
-                          <MoreVertical className="h-4 w-4" />
-                          <span className="sr-only">Open menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {statusOptions.map((status) => (
-                          <DropdownMenuItem
-                            key={status}
-                            onClick={() => handleStatusChange(order.id, status)}
-                            disabled={order.status === status}
-                            className={
-                              order.status === status ? "bg-muted" : ""
-                            }
+                <>
+                  <TableRow
+                    key={order.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                  >
+                    <TableCell onClick={() => toggleOrderExpand(order.id)}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        {expandedOrders[order.id] ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </TableCell>
+                    <TableCell
+                      className="font-mono text-xs"
+                      onClick={() => toggleOrderExpand(order.id)}
+                    >
+                      {order.id.substring(0, 8)}...
+                    </TableCell>
+                    <TableCell onClick={() => toggleOrderExpand(order.id)}>
+                      {new Date(order.orderDate).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell onClick={() => toggleOrderExpand(order.id)}>
+                      <Badge variant={getStatusVariant(order.status)}>
+                        {order.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell onClick={() => toggleOrderExpand(order.id)}>
+                      {formatCurrency(order.totalAmount)}
+                    </TableCell>
+                    <TableCell
+                      className="max-w-xs truncate"
+                      onClick={() => toggleOrderExpand(order.id)}
+                    >
+                      {order.shippingAddress}
+                    </TableCell>
+                    <TableCell
+                      className="text-center"
+                      onClick={() => toggleOrderExpand(order.id)}
+                    >
+                      <div className="text-sm">
+                        {order.items.length}{" "}
+                        {order.items.length === 1 ? "item" : "items"}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            disabled={changeStatusMutation.isPending}
                           >
-                            Change to {status.toLowerCase()}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
+                            <MoreVertical className="h-4 w-4" />
+                            <span className="sr-only">Open menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {statusOptions.map((status) => (
+                            <DropdownMenuItem
+                              key={status}
+                              onClick={() =>
+                                handleStatusChange(order.id, status)
+                              }
+                              disabled={order.status === status}
+                              className={
+                                order.status === status ? "bg-muted" : ""
+                              }
+                            >
+                              Change to {status.toLowerCase()}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+
+                  {/* Expanded order items row */}
+                  {expandedOrders[order.id] && (
+                    <TableRow>
+                      <TableCell colSpan={8} className="bg-muted/30 p-0">
+                        <div className="p-4">
+                          <div className="flex items-center gap-2 mb-4 text-sm font-medium">
+                            <ShoppingBag className="h-4 w-4" />
+                            <span>Order Items</span>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {order.items.map((item) => (
+                              <div
+                                key={item.id}
+                                className="bg-card border rounded-md p-3 shadow-sm"
+                              >
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <h4 className="font-medium">
+                                      {item.productName}
+                                    </h4>
+                                    <div className="text-sm text-muted-foreground">
+                                      ID: {item.productId.substring(0, 8)}...
+                                    </div>
+                                  </div>
+                                  <Badge variant="outline" className="ml-2">
+                                    Qty: {item.quantity}
+                                  </Badge>
+                                </div>
+                                <div className="mt-2 flex justify-between items-center">
+                                  <span className="text-sm text-muted-foreground">
+                                    Unit Price: {formatCurrency(item.price)}
+                                  </span>
+                                  <span className="font-medium">
+                                    {formatCurrency(item.price * item.quantity)}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </>
               ))
             )}
           </TableBody>

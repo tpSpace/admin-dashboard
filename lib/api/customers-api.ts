@@ -45,9 +45,11 @@ export const changeCustomerRole = async (
   customerId: string,
   role: string
 ): Promise<Customer> => {
-  const { data } = await api.patch(`/v1/users/${customerId}/role`, null, {
-    params: { id: customerId, role },
-  });
+  const { data } = await api.patch<Customer>(
+    "/v1/users/role", // ← use the `/role` endpoint on /v1/users
+    null,
+    { params: { id: customerId, role } }
+  );
   return data;
 };
 

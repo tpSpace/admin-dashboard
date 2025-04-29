@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useGetAllOrders } from "@/lib/api/orders-api";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { useGetAllOrders, useChangeOrderStatus } from "@/lib/api/orders-api";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -14,18 +16,35 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronLeft, ChevronRight, Package } from "lucide-react";
+import { ChevronLeft, ChevronRight, Package, MoreVertical } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function OrdersPage() {
   const [page, setPage] = useState(0);
   const pageSize = 10;
+  const queryClient = useQueryClient();
 
   const { data, isLoading, error } = useGetAllOrders(page, pageSize);
+  const changeStatusMutation = useChangeOrderStatus();
 
   // Extract data from the nested API response structure
   const ordersPage = data?.data;
   const orders = ordersPage?.content || [];
   const totalPages = ordersPage?.totalPages || 0;
+
+  // Available order status options
+  const statusOptions = [
+    "PENDING",
+    "PROCESSING",
+    "SHIPPED",
+    "DELIVERED",
+    "CANCELLED",
+  ];
 
   // Status badge variant mapper
   const getStatusVariant = (status: string) => {
@@ -48,6 +67,22 @@ export default function OrdersPage() {
       style: "currency",
       currency: "USD",
     }).format(amount);
+  };
+
+  // Handle status change
+  const handleStatusChange = (orderId: string, newStatus: string) => {
+    changeStatusMutation.mutate(
+      { orderId, status: newStatus },
+      {
+        onSuccess: () => {
+          toast.success(`Order status changed to ${newStatus}`);
+          queryClient.invalidateQueries({ queryKey: ["all-orders"] });
+        },
+        onError: () => {
+          toast.error("Failed to change order status");
+        },
+      }
+    );
   };
 
   if (isLoading) {
@@ -111,12 +146,14 @@ export default function OrdersPage() {
               <TableHead className="w-[100px]">Total</TableHead>
               <TableHead>Shipping Address</TableHead>
               <TableHead className="w-[80px]">Items</TableHead>
+              <TableHead className="w-[60px]"></TableHead>
+              {/* Actions column */}
             </TableRow>
           </TableHeader>
           <TableBody>
             {orders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
+                <TableCell colSpan={7} className="h-24 text-center">
                   No orders found
                 </TableCell>
               </TableRow>
@@ -143,6 +180,35 @@ export default function OrdersPage() {
                       {order.items.length}{" "}
                       {order.items.length === 1 ? "item" : "items"}
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          disabled={changeStatusMutation.isPending}
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                          <span className="sr-only">Open menu</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {statusOptions.map((status) => (
+                          <DropdownMenuItem
+                            key={status}
+                            onClick={() => handleStatusChange(order.id, status)}
+                            disabled={order.status === status}
+                            className={
+                              order.status === status ? "bg-muted" : ""
+                            }
+                          >
+                            Change to {status.toLowerCase()}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))

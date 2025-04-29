@@ -8,6 +8,7 @@ export interface User {
   role: string;
   firstName: string;
   lastName: string;
+  bio: string;
 }
 
 interface AuthState {

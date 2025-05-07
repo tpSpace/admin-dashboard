@@ -62,10 +62,10 @@ export const getProducts = async (
 };
 
 // Function to fetch a single product
-export const getProductById = async (id: string): Promise<Product> => {
-  const response = await api.get(`/v1/products/${id}`);
-  return response.data;
-};
+// export const getProductById = async (id: string): Promise<Product> => {
+//   const response = await api.get(`/v1/products/${id}`);
+//   return response.data;
+// };
 
 // Function to update a product
 export const updateProduct = async (
@@ -85,7 +85,7 @@ export const updateProduct = async (
     });
   }
 
-  const response = await api.put(`/v1/products?id=${id}`, formData, {
+  const response = await api.put(`/v1/products/${id}`, formData, {
     headers: {
       "Content-Type": "multipart/form-data",
     },
@@ -98,11 +98,41 @@ export const deleteProduct = async (id: string): Promise<void> => {
   await api.delete(`/v1/products?id=${id}`);
 };
 
+export const getProductDetails = async (id: string) => {
+  const { data } = await api.get(`/v1/products/${id}/details`);
+  return data;
+};
+
+export const getProductImages = async (productId: string) => {
+  const { data } = await api.get(`/v1/products/${productId}/images`);
+  return data; // Should be ProductImageDto[]
+};
+export const getProductById = async (id: string) => {
+  const { data } = await api.get(`/v1/products/${id}`);
+  return data;
+};
+// Product details (no images)
+export const useGetProductDetails = (id: string) =>
+  useQuery({
+    queryKey: ["product-details", id],
+    queryFn: () => getProductDetails(id),
+    enabled: !!id,
+  });
+
+// Product images
+export const useGetProductImages = (productId: string) =>
+  useQuery({
+    queryKey: ["product-images", productId],
+    queryFn: () => getProductImages(productId),
+    enabled: !!productId,
+  });
+
+// (Optional) Product by ID (with images, if needed)
 // React Query hooks
-export const useGetProducts = () => {
+export const useGetProducts = (page = 0, size = 12) => {
   return useQuery({
-    queryKey: ["products"],
-    queryFn: () => getProducts(),
+    queryKey: ["products", page, size],
+    queryFn: () => getProducts(page, size),
   });
 };
 
@@ -144,5 +174,36 @@ export const useUpdateProduct = () => {
 export const useDeleteProduct = () => {
   return useMutation({
     mutationFn: deleteProduct,
+  });
+};
+// ProductImage interface if you don't have it already
+export interface ProductImage {
+  id: string;
+  productId: string;
+  imageData: string;
+  name?: string;
+}
+
+// Get images for multiple products at once
+export const getBatchProductImages = async (productIds: string[]) => {
+  if (!productIds.length) return {};
+
+  // Make parallel requests for each product's images
+  const promises = productIds.map((id) => getProductImages(id));
+  const results = await Promise.all(promises);
+
+  // Return a map of productId -> images
+  return productIds.reduce((acc, id, index) => {
+    acc[id] = results[index];
+    return acc;
+  }, {} as Record<string, ProductImage[]>);
+};
+
+// React Query hook for batch image fetching
+export const useGetBatchProductImages = (productIds: string[]) => {
+  return useQuery({
+    queryKey: ["product-images-batch", productIds],
+    queryFn: () => getBatchProductImages(productIds),
+    enabled: productIds.length > 0,
   });
 };

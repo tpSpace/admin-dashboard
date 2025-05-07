@@ -10,7 +10,6 @@ import {
   ShoppingBag,
   Users,
   ClipboardList,
-  BarChart2,
   Settings,
   Menu,
   X,
@@ -69,10 +68,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     { href: "/dashboard/products", label: "Products", icon: ShoppingBag },
     { href: "/dashboard/orders", label: "Orders", icon: ClipboardList },
     { href: "/dashboard/customers", label: "Customers", icon: Users },
-    { href: "/dashboard/analytics", label: "Analytics", icon: BarChart2 },
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ];
-
+  // day693 len dau trang tstatus admin
+  // alert each changes
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Mobile overlay */}

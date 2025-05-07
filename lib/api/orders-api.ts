@@ -1,5 +1,5 @@
 import axios from "axios";
-import { useQuery, useMutation } from "@tanstack/react-query"; // Add useMutation import
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuthStore } from "@/lib/store/auth-store";
 import type { ApiResponse, Page, Order } from "@/types/orders-schema";
 
@@ -14,7 +14,6 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-/** Admin-only: Fetch all orders (requires ADMIN role) */
 export const getAllOrders = async (
   page = 0,
   size = 10
@@ -25,14 +24,12 @@ export const getAllOrders = async (
   return data;
 };
 
-/** React‑Query hook for admin dashboard */
 export const useGetAllOrders = (page = 0, size = 10) =>
   useQuery({
     queryKey: ["all-orders", page, size],
     queryFn: () => getAllOrders(page, size),
   });
 
-/** Change order status (admin only) */
 export const changeOrderStatus = async (
   orderId: string,
   status: string
@@ -45,7 +42,6 @@ export const changeOrderStatus = async (
   return data;
 };
 
-/** React-Query hook for changing order status */
 export const useChangeOrderStatus = () =>
   useMutation({
     mutationFn: ({ orderId, status }: { orderId: string; status: string }) =>

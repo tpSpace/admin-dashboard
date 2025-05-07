@@ -12,7 +12,7 @@ export function copyToClipboard(text: string, message: string) {
   );
 }
 
-export function formatCurrency(amount: number) {
+export function formatPrice(amount: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -32,3 +32,15 @@ export function getStatusVariant(status: string) {
   };
   return statusMap[status] || "outline";
 }
+
+export const formatBase64Image = (
+  imageUrl: string,
+  mimeType?: string
+): string => {
+  console.log("formatBase64Image", imageUrl);
+  if (imageUrl === "") {
+    return "";
+  }
+  const mime = mimeType || "image/jpeg"; // Fallback to JPEG
+  return `data:${mime};base64,${imageUrl}`;
+};

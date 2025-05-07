@@ -32,6 +32,7 @@ import {
 } from "@/types/products-schema";
 import { useCreateProduct, useUpdateProduct } from "@/lib/api/products-api";
 import { Category } from "@/types/categories-schema";
+import { formatBase64Image } from "@/lib/utils";
 
 interface ProductFormProps {
   initialData?: Product;
@@ -146,6 +147,7 @@ export default function ProductForm({
   const removeExistingImage = (index: number) => {
     setExistingImages((prev) => prev.filter((_, i) => i !== index));
     // In a real app, you'd also track removed images to delete them on the server
+    // call API to delete the image
   };
 
   return (
@@ -260,11 +262,7 @@ export default function ProductForm({
                   <div key={`existing-${index}`} className="relative group">
                     <div className="aspect-square rounded-md overflow-hidden border bg-muted">
                       <Image
-                        src={
-                          src.startsWith("http") || src.startsWith("data:")
-                            ? src
-                            : `data:image/jpeg;base64,${src}`
-                        }
+                        src={formatBase64Image(src || "")}
                         alt={`Product image ${index + 1}`}
                         fill
                         sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"

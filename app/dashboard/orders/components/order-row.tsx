@@ -15,7 +15,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { formatCurrency, copyToClipboard, getStatusVariant } from "@/lib/utils";
+import { formatPrice, copyToClipboard, getStatusVariant } from "@/lib/utils";
 import { Order, OrderItem } from "@/types/orders-schema";
 
 type Props = {
@@ -73,7 +73,7 @@ export function OrderRow({
         <td onClick={toggleExpand}>
           <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
         </td>
-        <td onClick={toggleExpand}>{formatCurrency(order.totalAmount)}</td>
+        <td onClick={toggleExpand}>{formatPrice(order.totalAmount)}</td>
         <td className="max-w-xs truncate" onClick={toggleExpand}>
           {order.shippingAddress}
         </td>
@@ -124,7 +124,7 @@ export function OrderRow({
                       <Badge variant="outline">Qty: {item.quantity}</Badge>
                     </div>
                     <div className="mt-1 text-sm text-muted-foreground">
-                      {formatCurrency(item.price)} each
+                      {formatPrice(item.price)} each
                     </div>
                   </li>
                 ))}

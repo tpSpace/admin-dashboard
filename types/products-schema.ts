@@ -1,10 +1,14 @@
 import { z } from "zod";
 
 export const productSchema = z.object({
-  name: z.string().min(2, { message: "Name must be at least 2 characters" }),
+  name: z
+    .string()
+    .min(2, { message: "Name must be at least 2 characters" })
+    .max(20, { message: "Name must be at most 20 characters" }),
   description: z
     .string()
-    .min(10, { message: "Description must be at least 10 characters" }),
+    .min(10, { message: "Description must be at least 10 characters" })
+    .max(200, { message: "Description must be at most 200 characters" }),
   price: z.coerce
     .number()
     .positive({ message: "Price must be a positive number" }),
@@ -27,7 +31,12 @@ export type Product = {
   price: number;
   category: string;
   quantity: number;
-  images: string[];
+  images?: string[]; // base64 encoded images or URLs
+  // images array is removed from here
 };
-
+export type ProductImage = {
+  id: string;
+  productId: string;
+  imageData: string; // base64 encoded image or URL
+};
 export type ProductFormValues = z.infer<typeof productSchema>;

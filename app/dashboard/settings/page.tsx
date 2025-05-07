@@ -196,7 +196,6 @@ export default function SettingsPage() {
                         <FormLabel>Address</FormLabel>
                         <FormControl>
                           <Input
-                            type="url"
                             placeholder="123 Admin Street, Admin City"
                             {...field}
                           />

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +23,11 @@ import { toast } from "sonner";
 import ProductForm from "./components/product-form";
 import ProductCard from "./components/product-card";
 import ProductSkeleton from "./components/product-skeleton";
-import { useGetProducts, useDeleteProduct } from "@/lib/api/products-api";
+import {
+  useGetProducts,
+  useDeleteProduct,
+  useGetBatchProductImages,
+} from "@/lib/api/products-api";
 import { useGetCategories } from "@/lib/api/categories-api";
 import { Category } from "@/types/categories-schema";
 import { Product } from "@/types/products-schema";
@@ -33,15 +37,29 @@ export default function ProductsPage() {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [page, setPage] = useState(0);
+  const [pageSize] = useState(12); // Number of products per page
   const queryClient = useQueryClient();
 
-  // Use the custom hooks for fetching and managing products
-  const { data: products, isLoading, error } = useGetProducts();
+  // Use the custom hooks for fetching and managing products with pagination
+  const { data: products, isLoading, error } = useGetProducts(page, pageSize);
   const { data: categories = [] } = useGetCategories();
   const deleteProductMutation = useDeleteProduct();
 
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [productToEdit, setProductToEdit] = useState<Product | null>(null);
+
+  // Get paginated data
+  const product = products?.content || [];
+  const totalPages = products?.totalPages || 0;
+  const totalElements = products?.totalElements || 0;
+
+  // Get all product IDs for the current page
+  const productIds = product.map((p) => p.id);
+
+  // Fetch all images for current page products at once
+  const { data: productImages, isLoading: loadingImages } =
+    useGetBatchProductImages(productIds);
 
   // Handle product delete
   const handleDeleteProduct = (id: string) => {
@@ -50,6 +68,7 @@ export default function ProductsPage() {
         onSuccess: () => {
           toast.success("Product deleted successfully");
           queryClient.invalidateQueries({ queryKey: ["products"] });
+          queryClient.invalidateQueries({ queryKey: ["product-images-batch"] });
         },
         onError: (error) => {
           console.error("Error deleting product:", error);
@@ -59,9 +78,7 @@ export default function ProductsPage() {
     }
   };
 
-  // Filter products based on search query and category
-  // const page = data as Page<Product>;
-  const product = products?.content;
+  // Option 1: Client-side filtering (if you want to keep filtering in the UI)
   const filteredProducts = product?.filter((product: Product) => {
     const matchesSearch =
       searchQuery === "" ||
@@ -73,6 +90,14 @@ export default function ProductsPage() {
 
     return matchesSearch && matchesCategory;
   });
+
+  // Reset to first page when filters change
+  const handleFilterChange = (search: string, category: string) => {
+    setSearchQuery(search);
+    setCategoryFilter(category);
+    setPage(0); // Reset to first page when filters change
+  };
+
   return (
     <div className="container mx-auto p-6">
       {/* Header with search and filters */}
@@ -86,11 +111,16 @@ export default function ProductsPage() {
               placeholder="Search products..."
               className="pl-8"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) =>
+                handleFilterChange(e.target.value, categoryFilter)
+              }
             />
           </div>
 
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <Select
+            value={categoryFilter}
+            onValueChange={(value) => handleFilterChange(searchQuery, value)}
+          >
             <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="All Categories" />
             </SelectTrigger>
@@ -119,6 +149,10 @@ export default function ProductsPage() {
                 onSuccess={() => {
                   setOpen(false);
                   queryClient.invalidateQueries({ queryKey: ["products"] });
+                  queryClient.invalidateQueries({
+                    queryKey: ["product-images-batch"],
+                  });
+                  toast.success("Product added successfully");
                 }}
                 onCancel={() => setOpen(false)}
               />
@@ -145,48 +179,69 @@ export default function ProductsPage() {
             There was an error loading your products.
           </p>
           <Button
-            onClick={() =>
-              queryClient.invalidateQueries({ queryKey: ["products"] })
-            }
+            onClick={() => {
+              queryClient.invalidateQueries({ queryKey: ["products"] });
+              queryClient.invalidateQueries({
+                queryKey: ["product-images-batch"],
+              });
+            }}
           >
             Retry
           </Button>
         </div>
       ) : filteredProducts?.length ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredProducts.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              onDelete={handleDeleteProduct}
-              onEdit={() => {
-                setProductToEdit(product);
-                setEditModalOpen(true);
-              }}
-            >
-              <EditProductModal
-                open={editModalOpen}
-                setOpen={setEditModalOpen}
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredProducts.map((product) => (
+              <ProductCard
+                key={product.id}
                 product={product}
-                categories={categories}
-                onSuccess={() =>
-                  queryClient.invalidateQueries({ queryKey: ["products"] })
-                }
+                preloadedImages={productImages?.[product.id]}
+                imagesLoading={loadingImages}
+                onDelete={handleDeleteProduct}
+                onEdit={() => {
+                  setProductToEdit(product);
+                  setEditModalOpen(true);
+                }}
               />
-            </ProductCard>
-          ))}
-          {productToEdit && (
-            <EditProductModal
-              product={productToEdit}
-              categories={categories}
-              open={editModalOpen}
-              setOpen={setEditModalOpen}
-              onSuccess={() => {
-                queryClient.invalidateQueries({ queryKey: ["products"] });
-              }}
-            />
+            ))}
+          </div>
+
+          {/* Pagination controls */}
+          {totalPages > 1 && (
+            <div className="flex justify-center mt-8 gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(Math.max(0, page - 1))}
+                disabled={page === 0}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Previous
+              </Button>
+
+              <div className="flex items-center text-sm mx-4">
+                <span className="text-muted-foreground">
+                  Page {page + 1} of {totalPages}
+                </span>
+                <span className="mx-2">·</span>
+                <span className="text-muted-foreground">
+                  {totalElements} products
+                </span>
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
+                disabled={page >= totalPages - 1}
+              >
+                Next
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
           )}
-        </div>
+        </>
       ) : product?.length ? (
         <div className="border rounded-lg p-12 text-center">
           <p className="text-lg font-medium mb-2">No matching products found</p>
@@ -196,8 +251,7 @@ export default function ProductsPage() {
           <Button
             variant="outline"
             onClick={() => {
-              setSearchQuery("");
-              setCategoryFilter("");
+              handleFilterChange("", "");
             }}
           >
             Clear Filters
@@ -214,6 +268,23 @@ export default function ProductsPage() {
             Add Product
           </Button>
         </div>
+      )}
+
+      {productToEdit && (
+        <EditProductModal
+          product={productToEdit}
+          categories={categories}
+          open={editModalOpen}
+          setOpen={setEditModalOpen}
+          onSuccess={() => {
+            setEditModalOpen(false);
+            queryClient.invalidateQueries({ queryKey: ["products"] });
+            queryClient.invalidateQueries({
+              queryKey: ["product-images-batch"],
+            });
+            toast.success("Product updated successfully");
+          }}
+        />
       )}
     </div>
   );

@@ -1,42 +1,59 @@
 import Image from "next/image";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2 } from "lucide-react";
-import { Product } from "@/types/products-schema";
+import { Edit, Trash2, ImageIcon } from "lucide-react";
+import { Product, ProductImage } from "@/types/products-schema";
+import { formatBase64Image, formatPrice } from "@/lib/utils";
+import { useGetProductImages } from "@/lib/api/products-api";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ProductCardProps {
   product: Product;
+  preloadedImages?: ProductImage[]; // Add this prop
+  imagesLoading?: boolean; // Add this prop
   onDelete: (id: string) => void;
-  onEdit: (id: string) => void; // Updated to accept an ID
+  onEdit: (id: string) => void;
   children?: React.ReactNode;
 }
 
 export default function ProductCard({
   product,
+  preloadedImages,
+  imagesLoading = false,
   onDelete,
   onEdit,
 }: ProductCardProps) {
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(price);
-  };
+  // Fetch images separately using the dedicated hook
+  const { data: images, isLoading: loadingIndividualImages } =
+    useGetProductImages(product.id);
 
-  const firstRaw = product.images?.[0] ?? "";
-  const src = firstRaw
-    ? firstRaw.startsWith("data:") || firstRaw.startsWith("http")
-      ? firstRaw
-      : `data:image/jpeg;base64,${firstRaw}`
-    : null;
+  // Use preloaded images if available, otherwise use fetched images
+  const productImages = preloadedImages || images;
+  const loadingImages = !preloadedImages
+    ? loadingIndividualImages
+    : imagesLoading;
+
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+
+  // When images load, set the first one as our display image
+  useEffect(() => {
+    if (productImages && productImages.length > 0) {
+      setImageUrl(formatBase64Image(productImages[0].imageData));
+    }
+  }, [productImages]);
 
   return (
     <Card className="overflow-hidden flex flex-col">
       <div className="h-48 bg-muted/30 relative">
-        {src ? (
+        {loadingImages ? (
+          <div className="h-full w-full">
+            <Skeleton className="h-full w-full" />
+          </div>
+        ) : imageUrl ? (
           <Image
-            src={src}
+            src={imageUrl}
             alt={product.name}
             fill
             sizes="(max-width: 768px) 100vw, 33vw"
@@ -44,7 +61,8 @@ export default function ProductCard({
           />
         ) : (
           <div className="flex items-center justify-center h-full text-muted-foreground">
-            No image
+            <ImageIcon className="h-8 w-8 mr-2" />
+            <span>No image</span>
           </div>
         )}
         <Badge className="absolute top-2 right-2">{product.category}</Badge>
